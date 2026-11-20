@@ -1,0 +1,410 @@
+\documentclass[12pt]{article}
+\usepackage[a4paper, margin=2.5cm]{geometry}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage{titlesec}
+\usepackage{hyperref}
+\usepackage{xurl}
+\usepackage{tocloft}
+\usepackage[spanish]{babel}
+\usepackage{setspace}
+\usepackage{array}
+\usepackage{booktabs}
+\usepackage{tikz}
+\usetikzlibrary{automata, positioning, arrows.meta}
+\setlength{\parindent}{0pt}
+\hypersetup{hidelinks}
+\onehalfspacing
+
+\titleformat{\section}
+  {\fontsize{13}{15}\selectfont\bfseries}
+  {\thesection.}{0.5em}{}
+
+\newtheorem{definicion}{Definición}[section]
+\newtheorem{teorema}{Teorema}[section]
+\newtheorem{proposicion}{Proposición}[section]
+\newtheorem{ejemplo}{Ejemplo}[section]
+
+\begin{document}
+\thispagestyle{empty}
+\begin{center}
+    {\fontsize{14}{17}\selectfont\textbf{UNIVERSIDAD NACIONAL DE INGENIERÍA}}\\[0.2cm]
+    {\fontsize{12}{15}\selectfont\textbf{FACULTAD DE CIENCIAS}}\\[0.2cm]
+    {\fontsize{12}{15}\selectfont\textbf{ÁLGEBRA LINEAL I}}\\[0.4cm]
+    {\includegraphics[width=8cm, height=8cm, keepaspectratio]{image2.png}}\\[0.5cm]
+    {\fontsize{13}{16}\selectfont\textbf{PROYECTO 4 | AVANCE 3}}\\[0.3cm]
+    {\fontsize{13}{16}\selectfont\textbf{ANÁLISIS Y PREDICCIÓN EN REDES MEDIANTE CADENAS DE MARKOV Y
+            ÁLGEBRA LINEAL}}\\[0.2cm]
+    {\fontsize{11}{14}\selectfont\textit{Aplicación a la movilidad de usuarios en el transporte público
+            de Lima Metropolitana}}\\[0.2cm]
+    {\fontsize{11}{14}\selectfont\textbf{Integrantes del Grupo 1}}\\[0.3cm]
+    \begin{tabular}{c p{12cm} c}
+        \textbf{N°} & \textbf{Apellidos y Nombres}          & \textbf{Código} \\[0.3cm]
+        1           & ALTEZ INFANTAS, JUAN CARLOS           & 20261602I       \\[0.3cm]
+        2           & BARDALES SUCLUPE, WILY JUNIOR FILOMON & 20241481A       \\[0.3cm]
+        3           & GARCIA SAMAN, ARON PATRICK            & 20252147K       \\[0.3cm]
+        4           & HUALLPA TORRES, YAN CESAR             & 20250554H       \\[0.3cm]
+        5           & POMASUNCO HUILLCA, RODRIGO ANDRE      & 20251442I       \\[0.3cm]
+        6           & TIRADO NINA, HECTOR EDUARDO           & 20250475K       \\[0.3cm]
+    \end{tabular}\vspace{0.2cm}
+
+    {\fontsize{11}{14}\selectfont\textbf{Docente: PÉREZ CUPE, RÓSULO HILARIÓN}}\\[0.2cm]
+    {\fontsize{11}{14}\selectfont\textbf{2026 - II}}\\[0.2cm]
+    {\fontsize{11}{14}\selectfont\textbf{LIMA -- PERÚ}}\\[0.2cm]
+\end{center}
+
+\newpage
+\tableofcontents
+\newpage
+
+\section*{RESUMEN}
+Se modela la movilidad de usuarios en el transporte público de Lima Metropolitana mediante una
+cadena de Markov en tiempo discreto. Las zonas de la ciudad son los estados y los desplazamientos
+entre ellas, las transiciones. La dinámica se representa con una matriz estocástica por filas
+y vectores de estado. En este avance se precisan los estados, las variables y los supuestos del
+modelo, se explica cómo se estimará la matriz de transición a partir de datos institucionales y
+se desarrolla la teoría de Álgebra Lineal necesaria (potencias de matrices, sistemas lineales,
+valores y vectores propios, teorema de Perron--Frobenius) para analizar la evolución del sistema y
+su comportamiento de largo plazo \cite{norris,meyer}.
+
+\textbf{Palabras clave:} cadena de Markov, matriz estocástica, distribución estacionaria,
+valores propios, movilidad urbana, álgebra lineal.
+
+\section{INTRODUCCIÓN}
+Las cadenas de Markov permiten representar sistemas que evolucionan entre estados mediante
+probabilidades de transición \cite{norris,kemeny}. En este proyecto se aplica ese enfoque a la
+movilidad de usuarios entre zonas de Lima Metropolitana. El interés para Álgebra Lineal radica
+en que toda la dinámica puede expresarse con vectores y matrices: las potencias de la matriz de
+transición describen la evolución temporal y los valores propios permiten estudiar el
+comportamiento de largo plazo \cite{meyer,strang}.
+
+Este documento corresponde al segundo avance. Respecto al primero, se concretan los estados y
+los supuestos, se desarrolla el marco teórico y se muestra, con un ejemplo numérico, el análisis
+que se realizará sobre la matriz de transición del modelo. La implementación computacional se
+presentará en el tercer y último avance.
+
+\section{DESCRIPCIÓN DEL PROBLEMA}
+\subsection{Contexto}
+Lima Metropolitana concentra una gran parte de la población del país y depende en buena medida
+del transporte público para sus desplazamientos diarios. Este sistema reúne varios modos
+(Metro de Lima, Metropolitano, corredores complementarios y buses), cuya regulación en Lima y
+Callao corresponde a la Autoridad de Transporte Urbano (ATU) \cite{atu}. Conocer cómo se
+redistribuyen los usuarios entre zonas es útil para anticipar la congestión, dimensionar la
+oferta de rutas y evaluar la planificación del sistema.
+
+\subsection{Planteamiento}
+Se selecciona un conjunto finito de zonas y cada desplazamiento de un usuario se considera una
+transición entre estados. La pregunta central es:
+
+\vspace{0.3cm}
+{\itshape ¿Cómo evoluciona la distribución de usuarios entre distintas zonas de Lima
+    Metropolitana cuando los desplazamientos se modelan mediante una cadena de Markov, y qué
+    distribución se alcanza a largo plazo?}
+\vspace{0.3cm}
+
+\subsection{Alcance}
+El modelo trabaja a nivel de \textbf{zonas} (y no de estaciones o rutas individuales), porque ese nivel de agregación mantiene el modelo manejable y es el habitual en los estudios de movilidad urbana. Un \textbf{paso} $k \to k+1$ corresponde a \textbf{un viaje}: $X_k$ es la zona donde se encuentra el usuario y la transición describe hacia qué zona se dirige en su siguiente viaje.
+
+\newpage
+
+\section{IMPORTANCIA DEL ÁLGEBRA LINEAL EN EL PROBLEMA}
+En una cadena de Markov finita, las probabilidades de transición se organizan en una matriz y la
+distribución del sistema en un vector \cite{meyer,strang}. Cada herramienta del curso resuelve una
+parte concreta del problema:
+\begin{itemize}
+    \item \textbf{Producto matriz--vector:} calcula la distribución del siguiente periodo,
+          $x^{(k+1)}=x^{(k)}P$.
+    \item \textbf{Potencias de matrices:} permiten predecir a $k$ pasos, $x^{(k)}=x^{(0)}P^k$.
+    \item \textbf{Sistemas lineales homogéneos:} la distribución estacionaria se obtiene
+          resolviendo $\pi(P-I)=0$ con $\sum_i\pi_i=1$.
+    \item \textbf{Valores y vectores propios:} $\pi$ es un vector propio izquierdo asociado a
+          $\lambda=1$, y el resto del espectro controla la velocidad de convergencia.
+    \item \textbf{Diagonalización:} si $P=VDV^{-1}$, entonces $P^k=VD^kV^{-1}$, lo que
+          simplifica el cálculo de potencias \cite{lay,meyer}.
+\end{itemize}
+Por ello el Álgebra Lineal constituye el núcleo matemático del modelo.
+
+\section{JUSTIFICACIÓN DE LA ELECCIÓN DEL PROBLEMA}
+El problema fue elegido porque:
+\begin{itemize}
+    \item admite una representación clara mediante estados y transiciones;
+    \item se expresa directamente con vectores y matrices;
+    \item permite aplicar contenidos centrales del curso (sistemas lineales, valores propios,
+          diagonalización);
+    \item dispone de fuentes institucionales para obtener datos \cite{atu,inei}.
+\end{itemize}
+Además, las cadenas de Markov son una herramienta estándar para modelar sistemas probabilísticos
+discretos \cite{norris,ross}.
+\newpage
+
+\section{OBJETIVOS}
+\subsection{Objetivo general}
+Modelar la movilidad de usuarios entre zonas de Lima Metropolitana mediante una cadena de Markov
+finita y analizar su evolución y comportamiento de largo plazo con herramientas de Álgebra Lineal.
+
+\subsection{Objetivos específicos}
+\begin{itemize}
+    \item Definir los estados, las variables y los supuestos del modelo.
+    \item Identificar y documentar los datos de movilidad necesarios para estimar las transiciones.
+    \item Construir la matriz de transición estocástica $P$ a partir de frecuencias de viaje.
+    \item Representar la distribución de usuarios mediante vectores de estado.
+    \item Verificar la regularidad de $P$ y justificar la existencia y unicidad de la distribución
+          estacionaria.
+    \item Calcular la distribución estacionaria y los valores propios de $P$ e interpretarlos en el
+          contexto de Lima.
+\end{itemize}
+
+\newpage
+\section{ESTADOS, VARIABLES, DATOS Y SUPUESTOS}
+
+\subsection{Estados}
+Se considera un conjunto finito $S=\{1,2,\ldots,n\}$ donde cada estado es una zona de Lima
+Metropolitana. Como esquema de trabajo se consideran cinco grandes zonas:
+\[
+    1:\ \text{Lima Norte},\quad 2:\ \text{Lima Centro},\quad 3:\ \text{Lima Este},\quad
+    4:\ \text{Lima Sur},\quad 5:\ \text{Callao}.
+\]
+Cada zona agrupa un conjunto de distritos contiguos con características de movilidad similares. La selección definitiva dependerá de la disponibilidad y del nivel de detalle de los datos de movilidad.
+
+\subsection{Variables}
+\begin{itemize}
+    \item $X_k$: zona ocupada por un usuario en el periodo $k$;
+    \item $n_{ij}$: número de desplazamientos observados de la zona $i$ a la zona $j$;
+    \item $p_{ij}$: probabilidad de transición de $i$ a $j$;
+    \item $P=(p_{ij})\in\mathbb{R}^{n\times n}$: matriz de transición;
+    \item $x^{(k)}=(x^{(k)}_1,\ldots,x^{(k)}_n)$: distribución de usuarios entre zonas en el
+          periodo $k$ (vector fila);
+    \item $\pi$: distribución estacionaria.
+\end{itemize}
+
+\subsection{Datos y estimación de la matriz}
+Las entradas de $P$ se estiman a partir de frecuencias de desplazamiento entre zonas (matriz
+origen--destino) obtenidas de reportes de ATU e INEI \cite{atu,inei}:
+\[
+    p_{ij}=\frac{n_{ij}}{\sum_{j=1}^{n} n_{ij}},\qquad i,j=1,\ldots,n.
+\]
+Con esta definición cada fila suma 1 por construcción, de modo que $P$ es estocástica por filas.
+
+Los conteos $n_{ij}$ provendrán de matrices origen--destino o frecuencias de desplazamiento entre zonas publicadas por ATU e INEI. Mientras tanto, el procedimiento de análisis se desarrolla en la sección~\ref{sec:ejemplo} con una matriz ilustrativa, que sigue exactamente los mismos pasos que se aplicarán a la matriz estimada.
+
+\subsection{Supuestos del modelo}
+Se declaran explícitamente los siguientes supuestos, cuya validez se discute en las conclusiones:
+\begin{enumerate}
+    \item \textbf{Propiedad de Markov:} la zona de destino depende solo de la zona actual y no del
+          historial previo de viajes.
+    \item \textbf{Homogeneidad en el tiempo:} la matriz $P$ es la misma en todos los periodos
+          (no se distingue entre hora punta y hora valle).
+    \item \textbf{Población cerrada:} los usuarios del sistema no entran ni salen de la red
+          considerada; la suma de $x^{(k)}$ se mantiene igual a 1.
+    \item \textbf{Viajes internos:} los desplazamientos dentro de una misma zona se contabilizan
+          como transiciones $i\to i$, de modo que $p_{ii}$ puede ser positivo.
+    \item \textbf{Representatividad de los datos:} las frecuencias institucionales representan el
+          comportamiento general de los usuarios.
+\end{enumerate}
+
+\newpage
+\section{PRELIMINARES MATEMÁTICOS}
+
+\subsection{Cadena de Markov}
+Una cadena de Markov en tiempo discreto es un proceso $(X_k)_{k\ge 0}$ con valores en $S$ que
+satisface
+\[
+    \mathbb{P}(X_{k+1}=j \mid X_k=i, X_{k-1},\ldots,X_0)=\mathbb{P}(X_{k+1}=j \mid X_k=i),
+\]
+es decir, el siguiente estado depende solo del estado actual \cite{norris,kemeny}.
+
+\subsection{Matriz de transición}
+\begin{definicion}
+    Una matriz $P=(p_{ij})\in\mathbb{R}^{n\times n}$ es \emph{estocástica por filas} si
+    $p_{ij}\ge 0$ para todo $i,j$ y $\sum_{j=1}^{n}p_{ij}=1$ para todo $i$.
+\end{definicion}
+En el modelo, $p_{ij}=\mathbb{P}(X_{k+1}=j\mid X_k=i)$ \cite{norris,ross}. Equivalentemente,
+$P\mathbf{1}=\mathbf{1}$, donde $\mathbf{1}$ es el vector columna de unos.
+
+\begin{proposicion}\label{prop:producto}
+    Si $P$ y $Q$ son estocásticas por filas de orden $n$, entonces $PQ$ también lo es. En
+    particular, $P^k$ es estocástica para todo $k\ge 1$.
+\end{proposicion}
+\begin{proof}
+    Las entradas de $PQ$ son sumas de productos de números no negativos, luego son no negativas.
+    Además, $(PQ)\mathbf{1}=P(Q\mathbf{1})=P\mathbf{1}=\mathbf{1}$.
+\end{proof}
+
+\subsection{Vector de estado y evolución}
+El vector fila $x^{(k)}=(x^{(k)}_1,\ldots,x^{(k)}_n)$, con $x^{(k)}_i\ge 0$ y
+$\sum_i x^{(k)}_i=1$, representa la distribución de usuarios en el periodo $k$. Su evolución es
+\[
+    x^{(k+1)}=x^{(k)}P,\qquad\text{y por inducción}\qquad x^{(k)}=x^{(0)}P^k.
+\]
+Además, $p^{(k)}_{ij}=(P^k)_{ij}$ es la probabilidad de pasar de $i$ a $j$ en exactamente $k$
+pasos \cite{meyer,strang}.
+
+\subsection{Clasificación de estados}
+\begin{definicion}
+    El estado $j$ es \emph{accesible} desde $i$ si existe $k\ge 0$ con $(P^k)_{ij}>0$. Los
+    estados $i$ y $j$ se \emph{comunican} si cada uno es accesible desde el otro. La cadena es
+    \emph{irreducible} si todos los estados se comunican entre sí.
+\end{definicion}
+\begin{definicion}
+    El \emph{periodo} de un estado $i$ es $d_i=\operatorname{mcd}\{k\ge 1: (P^k)_{ii}>0\}$. Si
+    $d_i=1$ el estado es \emph{aperiódico}; en una cadena irreducible todos los estados tienen el
+    mismo periodo.
+\end{definicion}
+\begin{definicion}
+    Una matriz estocástica $P$ es \emph{regular} si existe $m\ge 1$ tal que todas las entradas de
+    $P^m$ son estrictamente positivas.
+\end{definicion}
+Una cadena finita es regular si y solo si es irreducible y aperiódica \cite{seneta,levin}. Un criterio
+práctico: si $P$ es irreducible y algún $p_{ii}>0$, entonces es regular.
+
+\subsection{Distribución estacionaria}
+\begin{definicion}
+    Una distribución $\pi$ es \emph{estacionaria} si
+    \[
+        \pi P=\pi,\qquad \pi_i\ge 0,\qquad \sum_{i=1}^n\pi_i=1.
+    \]
+\end{definicion}
+La condición equivale al sistema lineal homogéneo $\pi(P-I)=0$, es decir, $\pi$ es un
+\textbf{vector propio izquierdo} de $P$ asociado a $\lambda=1$ (o, de forma equivalente, un vector
+propio de $P^{\top}$) \cite{norris,seneta}.
+
+\subsection{Valores propios y convergencia}
+\begin{proposicion}\label{prop:espectro}
+    Si $P$ es estocástica por filas, entonces $\lambda=1$ es valor propio de $P$ (con vector propio
+    derecho $\mathbf{1}$) y todo valor propio $\lambda$ cumple $|\lambda|\le 1$.
+\end{proposicion}
+\begin{proof}
+    Como $P\mathbf{1}=\mathbf{1}$, se tiene $\lambda=1$. Sea $Pv=\lambda v$ con $v\ne 0$ y sea $i$
+    un índice con $|v_i|$ máximo. Entonces
+    $|\lambda||v_i|=\bigl|\sum_j p_{ij}v_j\bigr|\le\sum_j p_{ij}|v_j|\le|v_i|$, de donde
+    $|\lambda|\le 1$.
+\end{proof}
+
+\begin{teorema}[Perron--Frobenius para matrices estocásticas regulares]\label{teo:pf}
+    Sea $P$ estocástica por filas y regular. Entonces:
+    \begin{enumerate}
+        \item $\lambda=1$ es un valor propio simple y todo otro valor propio cumple $|\lambda|<1$;
+        \item existe una única distribución estacionaria $\pi$ y todas sus entradas son positivas;
+        \item $P^k\to\mathbf{1}\pi$ cuando $k\to\infty$; en consecuencia, $x^{(k)}\to\pi$ para
+              cualquier distribución inicial $x^{(0)}$.
+    \end{enumerate}
+\end{teorema}
+La demostración puede consultarse en \cite{seneta,levin}. La velocidad de la convergencia está
+gobernada por $|\lambda_2|$, el segundo mayor módulo entre los valores propios: cuanto menor es
+$|\lambda_2|$, más rápido $x^{(k)}$ se aproxima a $\pi$.
+
+\subsection{Diagonalización}
+Si $P$ es diagonalizable, $P=VDV^{-1}$ con $D=\operatorname{diag}(1,\lambda_2,\ldots,\lambda_n)$,
+entonces $P^k=VD^kV^{-1}$ y
+\[
+    x^{(k)}=x^{(0)}VD^kV^{-1}.
+\]
+Como $|\lambda_i|<1$ para $i\ge 2$, $D^k\to\operatorname{diag}(1,0,\ldots,0)$, lo que explica
+el teorema~\ref{teo:pf} \cite{meyer,lay}.
+
+\newpage
+\section{EJEMPLO ILUSTRATIVO DEL ANÁLISIS}\label{sec:ejemplo}
+Para mostrar el procedimiento se usa una matriz \textbf{ilustrativa} de 3 zonas, con valores elegidos solo para explicar el método. En el siguiente avance se reemplazará por la matriz estimada a partir de los datos de movilidad, siguiendo exactamente el mismo procedimiento.
+
+Sean las zonas $A$, $B$, $C$ y
+\[
+    P=\begin{pmatrix}
+        0{,}7 & 0{,}2 & 0{,}1 \\
+        0{,}3 & 0{,}5 & 0{,}2 \\
+        0{,}2 & 0{,}3 & 0{,}5
+    \end{pmatrix},\qquad x^{(0)}=(0{,}5\;\;0{,}3\;\;0{,}2).
+\]
+
+\begin{figure}[h]
+    \centering
+    \begingroup
+    \shorthandoff{>}
+    \begin{tikzpicture}[->, >=Stealth, node distance=3.2cm, auto, thick,
+            every state/.style={minimum size=1cm}]
+        \node[state] (A) {$A$};
+        \node[state] (B) [right of=A] {$B$};
+        \node[state] (C) [below right=2.2cm and 1.6cm of A] {$C$};
+        \path
+        (A) edge[loop above] node {0,7} (A)
+        (B) edge[loop above] node {0,5} (B)
+        (C) edge[loop below] node {0,5} (C)
+        (A) edge[bend left=15] node {0,2} (B)
+        (B) edge[bend left=15] node {0,3} (A)
+        (A) edge[bend left=10] node[pos=0.6,left] {0,1} (C)
+        (C) edge[bend left=10] node[pos=0.4,right] {0,2} (A)
+        (B) edge[bend left=10] node[pos=0.6,right] {0,2} (C)
+        (C) edge[bend left=10] node[pos=0.4,below] {0,3} (B);
+    \end{tikzpicture}
+    \endgroup
+    \caption{Grafo de transiciones del ejemplo ilustrativo.}
+\end{figure}
+
+\subsection{Verificación de \texorpdfstring{$P$}{P}}
+Todas las entradas son no negativas y cada fila suma 1, luego $P$ es estocástica. Como todos los
+$p_{ij}>0$, la cadena es irreducible y aperiódica; es decir, $P$ es regular y se aplica el
+teorema~\ref{teo:pf}.
+
+\subsection{Evolución de la distribución}
+\begin{align*}
+    x^{(1)} & =x^{(0)}P=(0{,}480\;\;0{,}310\;\;0{,}210), \\
+    x^{(2)} & =x^{(1)}P=(0{,}471\;\;0{,}314\;\;0{,}215).
+\end{align*}
+
+\subsection{Distribución estacionaria}
+Se resuelve $\pi P=\pi$ con $\sum_i\pi_i=1$. Las ecuaciones independientes son
+\begin{align*}
+    0{,}3\pi_1 & =0{,}3\pi_2+0{,}2\pi_3, \\
+    0{,}5\pi_3 & =0{,}1\pi_1+0{,}2\pi_2.
+\end{align*}
+De la segunda, $\pi_3=0{,}2\pi_1+0{,}4\pi_2$. Al sustituir en la primera se obtiene
+$0{,}26\pi_1=0{,}38\pi_2$, es decir, $\pi_2=\tfrac{13}{19}\pi_1$ y $\pi_3=\tfrac{9}{19}\pi_1$.
+Con la condición de normalización:
+\[
+    \pi=\left(\tfrac{19}{41},\;\tfrac{13}{41},\;\tfrac{9}{41}\right)\approx
+    (0{,}4634\;\;0{,}3171\;\;0{,}2195).
+\]
+El mismo resultado se obtiene por eliminación de Gauss--Jordan. Multiplicando por 10 las dos primeras ecuaciones y reemplazando la tercera (redundante) por la condición de normalización, la matriz aumentada se reduce así:
+\[
+    \left(\begin{array}{ccc|c}
+        -3 & 3  & 2 & 0 \\
+        2  & -5 & 3 & 0 \\
+        1  & 1  & 1 & 1
+    \end{array}\right)
+    \;\longrightarrow\;
+    \left(\begin{array}{ccc|c}
+        1 & 0 & 0 & 19/41 \\
+        0 & 1 & 0 & 13/41 \\
+        0 & 0 & 1 & 9/41
+    \end{array}\right).
+\]
+Nótese que $x^{(2)}$ ya está muy cerca de $\pi$. El tiempo medio de retorno a la zona $i$ es
+$1/\pi_i$; por ejemplo, para $A$ es $41/19\approx 2{,}16$ pasos.
+
+\subsection{Valores propios}
+La traza es $1{,}7$ y el determinante es $0{,}11$. Como uno de los valores propios es $1$, los
+otros dos satisfacen $\lambda^2-0{,}7\lambda+0{,}11=0$, de donde
+\[
+    \lambda_1=1,\qquad \lambda_{2,3}=\frac{0{,}7\pm\sqrt{0{,}05}}{2}\approx 0{,}462,\;0{,}238.
+\]
+Como $|\lambda_2|\approx 0{,}46<1$, la convergencia a $\pi$ es rápida: el error se reduce
+aproximadamente a la mitad en cada paso.
+\newpage
+\section{BIBLIOGRAFÍA}
+\begin{thebibliography}{10}
+    \bibitem{norris} Norris, J. R. (1998). \emph{Markov Chains}. Cambridge University Press. \url{https://doi.org/10.1017/CBO9780511819181}
+    \bibitem{meyer} Meyer, C. D. (2023). \emph{Matrix Analysis and Applied Linear Algebra}. 2nd ed., SIAM. \url{https://doi.org/10.1137/1.9781611972082}
+    \bibitem{ross} Ross, S. M. (2019). \emph{Introduction to Probability Models}. 12th ed., Academic. \url{https://www.sciencedirect.com/book/9780128143469/introduction-to-probability-models}
+    \bibitem{kemeny} Kemeny, J. G., \& Snell, J. L. (1960). \emph{Finite Markov Chains}. Van Nostrand.
+    \bibitem{seneta} Seneta, E. (2006). \emph{Non-negative Matrices and Markov Chains}. 3rd ed., Springer.
+    \bibitem{levin} Levin, D. A., Peres, Y., \& Wilmer, E. L. (2009). \emph{Markov Chains and Mixing Times}. American Mathematical Society.
+    \bibitem{strang} Strang, G. (2016). \emph{Introduction to Linear Algebra}. 5th ed., Wellesley--Cambridge Press.
+    \bibitem{lay} Lay, D. C., Lay, S. R., \& McDonald, J. J. (2016). \emph{Linear Algebra and Its Applications}. 5th ed., Pearson.
+    \bibitem{atu} Autoridad de Transporte Urbano para Lima y Callao (ATU). (2023). \emph{Reportes de demanda y estadísticas de transporte}. \url{https://www.atu.gob.pe}
+    \bibitem{inei} Instituto Nacional de Estadística e Informática (INEI). (2023). \emph{Estadísticas de movilidad y población}. \url{https://www.inei.gob.pe}
+\end{thebibliography}
+\end{document}
